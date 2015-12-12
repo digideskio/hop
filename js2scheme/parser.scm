@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Sun Sep  8 07:38:28 2013                          */
-;*    Last change :  Mon Dec  7 13:52:57 2015 (serrano)                */
+;*    Last change :  Fri Dec 11 21:06:41 2015 (serrano)                */
 ;*    Copyright   :  2013-15 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    JavaScript parser                                                */
@@ -791,7 +791,6 @@
 			   (mode mode)
 			   (body body)
 			   (vararg (rest-params params))
-			   (vararg (rest-params params))
 			   (decl (instantiate::J2SDecl
 				    (loc (token-loc token))
 				    (id (cdr id))
@@ -809,10 +808,9 @@
 				      (loc (token-loc token))
 				      (decl decl)
 				      (name (cdr id))
+				      (mode mode)
 				      (params params)
 				      (vararg (rest-params params))
-				      (vararg (rest-params params))
-				      (mode mode)
 				      (body body)))
 			      (decl (instantiate::J2SDeclFunCnst
 				       (loc (token-loc id))
@@ -825,11 +823,10 @@
 	    (else
 	     (instantiate::J2SFun
 		(loc (token-loc token))
-		(params params)
-		(vararg (rest-params params))
-		(vararg (rest-params params))
 		(name '||)
 		(mode mode)
+		(params params)
+		(vararg (rest-params params))
 		(body body))))))
 
    (define (init->params init)
@@ -856,7 +853,7 @@
 		     (vararg (rest-params params))
 		     (name (cdr id))
 		     (init init)
-		     (mode 'strict)
+		     (mode mode)
 		     (path (cdr id))
 		     (body body)
 		     (decl (instantiate::J2SDecl
@@ -874,9 +871,7 @@
 				   (vararg (rest-params params))
 				   (name (cdr id))
 				   (init init)
-				   (mode (if (eq? mode 'hopscript)
-					     'hopscript
-					     'strict))
+				   (mode mode)
 				   (path (cdr id))
 				   (body body)))
 			   (decl (instantiate::J2SDeclFunCnst
@@ -895,7 +890,7 @@
 	     (vararg (rest-params params))
 	     (name (gensym))
 	     (init init)
-	     (mode 'strict)
+	     (mode mode)
 	     (body body)))))
    
    (define (service-import token id params declaration?)
@@ -2300,13 +2295,13 @@
 ;*    disable-es6-rest-argument ::J2SFun ...                           */
 ;*---------------------------------------------------------------------*/
 (define-walk-method (disable-es6-rest-argument this::J2SFun)
-   (with-access::J2SFun this (vararg loc)
-      (if (eq? vararg 'rest)
+   (with-access::J2SFun this (vararg name loc mode)
+      (if (and (eq? vararg 'rest) (not (eq? mode 'hopscript)))
 	  (raise
 	     (instantiate::&io-parse-error
 		(proc "js-parser")
 		(msg "rest arguments values disabled")
-		(obj 'id)
+		(obj name)
 		(fname (cadr loc))
 		(location (caddr loc))))
 	  (call-default-walker))))

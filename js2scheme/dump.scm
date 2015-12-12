@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Wed Sep 11 11:12:21 2013                          */
-;*    Last change :  Sat Oct 10 10:09:38 2015 (serrano)                */
+;*    Last change :  Thu Dec 10 12:18:07 2015 (serrano)                */
 ;*    Copyright   :  2013-15 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Dump the AST for debugging                                       */
@@ -90,6 +90,13 @@
       `(,@(call-next-method) ,(j2s->list lhs) ,(j2s->list rhs))))
 
 ;*---------------------------------------------------------------------*/
+;*    j2s->list ::J2SAssigOp ...                                       */
+;*---------------------------------------------------------------------*/
+(define-method (j2s->list this::J2SAssigOp)
+   (with-access::J2SAssigOp this (lhs rhs loc op)
+      `(,(call-next-method) ,op)))
+
+;*---------------------------------------------------------------------*/
 ;*    j2s->list ::J2SPrefix ...                                        */
 ;*---------------------------------------------------------------------*/
 (define-method (j2s->list this::J2SPrefix)
@@ -163,13 +170,14 @@
 ;*    j2s->list ::J2SFun ...                                           */
 ;*---------------------------------------------------------------------*/
 (define-method (j2s->list this::J2SFun)
-   (with-access::J2SFun this (params body decl mode)
+   (with-access::J2SFun this (name params body decl mode)
       (if (isa? decl J2SDecl)
 	  (with-access::J2SDecl decl (key id writable)
 	     `(,@(call-next-method) :id ,id :key ,key :mode ,mode
 		 :writable ,writable :decl ,(typeof decl)
 		 ,(map j2s->list params) ,(j2s->list body)))
-	  `(,@(call-next-method) ,(map j2s->list params) ,(j2s->list body)))))
+	  `(,@(call-next-method) :name ,name
+	      ,(map j2s->list params) ,(j2s->list body)))))
 
 ;*---------------------------------------------------------------------*/
 ;*    j2s->list ::J2SParam ...                                         */
@@ -209,6 +217,13 @@
       `(,@(call-next-method) ,(j2s->list body)
 	  ,(j2s->list catch)
 	  ,(j2s->list finally))))
+
+;*---------------------------------------------------------------------*/
+;*    j2s->list ::J2SCatch ...                                         */
+;*---------------------------------------------------------------------*/
+(define-method (j2s->list this::J2SCatch)
+   (with-access::J2SCatch this (param body)
+      `(,@(call-next-method) ,(j2s->list param) ,(j2s->list body))))
 
 ;*---------------------------------------------------------------------*/
 ;*    j2s->list ::J2SBinary ...                                        */
@@ -434,7 +449,19 @@
 (define-method (j2s->list this::J2SSwitch)
    (with-access::J2SSwitch this (key cases)
       `(,@(call-next-method) ,(j2s->list key)
-	  ,@(map (lambda (case::J2SCase)
-		   (with-access::J2SCase case (expr body)
-		      (list (j2s->list expr) (j2s->list body))))
-	      cases))))
+	  ,@(map j2s->list cases))))
+
+;*---------------------------------------------------------------------*/
+;*    j2s->list ::J2SCase ...                                          */
+;*---------------------------------------------------------------------*/
+(define-method (j2s->list this::J2SCase)
+   (with-access::J2SCase this (expr body)
+      (append (call-next-method) (list (j2s->list expr) (j2s->list body)))))
+
+;*---------------------------------------------------------------------*/
+;*    j2s->list ::J2SDefault ...                                       */
+;*---------------------------------------------------------------------*/
+(define-method (j2s->list this::J2SDefault)
+   (with-access::J2SDefault this (body)
+      (list 'J2SDefault (j2s->list body))))
+

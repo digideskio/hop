@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Fri Nov 12 13:32:52 2004                          */
-;*    Last change :  Wed Nov  4 11:27:23 2015 (serrano)                */
+;*    Last change :  Thu Dec 10 18:49:38 2015 (serrano)                */
 ;*    Copyright   :  2004-15 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Hop command line parsing                                         */
@@ -41,7 +41,7 @@
 	     (args-parse-usage #f)
 	     (exit 0))
 	    (("--version" (help "Print the version and exit"))
-	     (print (hop-name) (hop-version))
+	     (print (hop-name)"c-" (hop-version))
 	     (exit 0))
 	    (("-q" (help "Do not load an init file"))
 	     (set! loadp #f))
@@ -151,6 +151,9 @@
 	     #unspecified)
 	    (("-p" ?port (help "Hop compatibility, ignored"))
 	     #unspecified)
+	    (("--js-target-es5" (help "Generate a client-side JavaScript 1.5 file"))
+	     (hopc-js-target-set! 'es5)
+	     (hopc-pass-set! 'client-js))
 	    (("--js-es6" (help "Enable all EcmaScript 6 support"))
 	     (j2s-compile-options-set!
 		(append '(es6-let: #t es6-const: #t es6-arrow-function: #t
