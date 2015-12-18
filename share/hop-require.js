@@ -3,7 +3,7 @@
 /*    -------------------------------------------------------------    */
 /*    Author      :  Manuel Serrano                                    */
 /*    Creation    :  Tue May 27 06:09:16 2014                          */
-/*    Last change :  Tue Dec 15 08:12:33 2015 (serrano)                */
+/*    Last change :  Thu Dec 17 07:54:09 2015 (serrano)                */
 /*    Copyright   :  2014-15 Manuel Serrano                            */
 /*    -------------------------------------------------------------    */
 /*    Client side implementation of the "require" form                 */
@@ -18,11 +18,15 @@
 /*    require ...                                                      */
 /*---------------------------------------------------------------------*/
 function require( url ) {
-   if( window.hop[ '%modules' ][ url ] ) {
-      return window.hop[ '%modules' ][ url ];
+   var path = ( url.charAt( 0 ) == '.' )
+       ? hop[ '%filenameCanonicalize' ]( hop[ '%root' ] + "/" + url )
+       : url;
+
+   if( window.hop[ '%modules' ][ path ] ) {
+      return window.hop[ '%modules' ][ path ];
    } else {
-      if( window.hop[ '%requires' ][ url ] ) {
-	 return window.hop[ '%requires' ][ url ]();
+      if( window.hop[ '%requires' ][ path ] ) {
+	 return window.hop[ '%requires' ][ path ]();
       } else {
 	 throw new Error( "Client-side module \"" + url + "\" not requirable" );
       }
@@ -30,7 +34,34 @@ function require( url ) {
 }
 
 /*---------------------------------------------------------------------*/
-/*       %require                                                      */
+/*    %requireAlias ...                                                */
+/*---------------------------------------------------------------------*/
+hop[ '%requireAlias' ] = function( name, mod ) {
+   window.hop[ '%requires' ][ name ] = function() {
+      return require( mod );
+   }
+}
+
+/*---------------------------------------------------------------------*/
+/*    %filenameCanonicalize ...                                        */
+/*---------------------------------------------------------------------*/
+hop[ '%filenameCanonicalize' ] = function( name ) {
+   var s = name.split( "/" );
+   var r = [];
+
+   for( var i = 0; i < s.length; i++ ) {
+      switch( s[ i ] ) {
+	 case "..": r.pop(); break;
+	 case ".": break;
+	 default: r.push( s[ i ] );
+      }
+   }
+
+   return r.join( "/" );
+}
+
+/*---------------------------------------------------------------------*/
+/*    %require ...                                                     */
 /*---------------------------------------------------------------------*/
 hop[ '%require' ] = function( name, mod ) {
    
@@ -43,27 +74,22 @@ hop[ '%require' ] = function( name, mod ) {
       }
    }
 
-   function filenameCanonicalize( name ) {
-      var s = name.split( "/" );
-      var r = [];
-
-      for( var i = 0; i < s.length; i++ ) {
-	 switch( s[ i ] ) {
-	    case "..": r.pop(); break;
-	    case ".": break;
-	    default: r.push( s[ i ] );
-	 }
-      }
-
-      return r.join( "/" );
-   }
-
    function fileExists( file ) {
       return file in hop[ '%requires' ];
    }
    
    function resolveFile( file ) {
-      return  fileExists( file ) ? file : false;
+      if( fileExists( file ) ) {
+	 return file;
+      } else {
+	 var filejs = file + ".js";
+	 if( fileExists( filejs ) ) return filejs;
+	 
+	 filejs = file + ".json";
+	 if( fileExists( filejs ) ) return filejs;
+	 
+	 return false;
+      }
    }
 
    function resolvePackage( json, dir ) {
@@ -93,8 +119,7 @@ hop[ '%require' ] = function( name, mod ) {
    }
    
    function resolveFileOrDirectory( x, dir ) {
-      var file = filenameCanonicalize( dir + "/" + x );
-
+      var file = hop[ '%filenameCanonicalize' ]( dir + "/" + x );
       return resolveFile( file ) || resolveDirectory( file );
    }
    
@@ -111,7 +136,7 @@ hop[ '%require' ] = function( name, mod ) {
    }
    
    function resolveError( name ) {
-      throw new Error( "Cannot require client-side module \"" + url + "\"" );
+      throw new Error( "Cannot require client-side module \"" + name + "\"" );
    }
    
    function resolve( name ) {
@@ -132,7 +157,6 @@ hop[ '%require' ] = function( name, mod ) {
       return resolveModules( mod, name )
 	 || resolveError( name );
    }
-
 
    return require( resolve( name ) );
 }
